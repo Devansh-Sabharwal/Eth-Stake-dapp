@@ -1,24 +1,17 @@
-import { Check, ChevronDown, Copy, LogOut, TrendingUp, X } from "lucide-react";
+import { Check, Copy, LogOut, TrendingUp } from "lucide-react";
 import { useState } from "react";
-import {
-  useAccount,
-  useBalance,
-  useConnect,
-  useConnection,
-  useConnectors,
-  useDisconnect,
-  useSwitchChain,
-} from "wagmi";
+import { useBalance, useConnection, useDisconnect } from "wagmi";
+import { ChainDropdown } from "./chain-dropdown";
+import WalletModal from "./WalletModal";
 
 export default function Navbar() {
   const [walletModal, setWalletModal] = useState(false);
   const connection = useConnection();
   const status = connection.status;
   const address = connection.address;
-  const { connect } = useConnect();
-  const connectors = useConnectors();
+
   return (
-    <div className="border-b border-b-white/20">
+    <div className="border-b border-b-white/15">
       <div className="mx-8 flex py-6 justify-between">
         <div className="flex items-center gap-3">
           <span className="bg-white p-1 rounded-lg">
@@ -41,36 +34,7 @@ export default function Navbar() {
           <ChainDropdown />
         </div>
       </div>
-      {walletModal && (
-        <div className="fixed top-0 h-screen w-screen flex justify-center items-center">
-          <div className="w-full backdrop-blur-md max-w-md bg-black border border-zinc-800 rounded-2xl p-6">
-            <div className="flex items-center justify-between">
-              <span className="text-xl font-medium">Connect Wallet</span>
-              <button
-                onClick={() => setWalletModal(false)}
-                className="p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-900 transition-colors"
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <div className="mt-6 flex flex-col gap-4">
-              {connectors.map((connector) => (
-                <button
-                  className="w-full flex items-center justify-between p-4 rounded-xl bg-zinc-900/50 hover:bg-zinc-900 border border-zinc-800 hover:border-zinc-600 transition-all group"
-                  key={connector.uid}
-                  onClick={() => {
-                    connect({ connector });
-                    setWalletModal(false);
-                  }}
-                  type="button"
-                >
-                  <span className="text-white">{connector.name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+      {walletModal && <WalletModal setWalletModal={setWalletModal} />}
     </div>
   );
 }
@@ -122,54 +86,3 @@ const Disconnect = ({ address }: { address: string }) => {
     </div>
   );
 };
-
-export function ChainDropdown() {
-  const { switchChain } = useSwitchChain();
-  const { chainId } = useAccount();
-
-  const CHAINS = [
-    { id: 1, name: "Ethereum Mainnet" },
-    { id: 11155111, name: "Sepolia" },
-  ];
-
-  const [open, setOpen] = useState(false);
-
-  const activeChain = CHAINS.find((c) => c.id === chainId) || CHAINS[0];
-
-  const handleSelect = (id: 1 | 11155111) => {
-    switchChain({ chainId: id });
-    setOpen(false);
-  };
-
-  return (
-    <div className="relative inline-block text-left">
-      <button
-        onClick={() => setOpen(!open)}
-        className="flex items-center justify-between w-48 px-4 py-2 bg-zinc-900 border border-white/10 text-white rounded-md hover:bg-zinc-800 transition"
-      >
-        {activeChain.name}
-        <span className="ml-2">
-          <ChevronDown />
-        </span>
-      </button>
-
-      {open && (
-        <div className="absolute mt-2 w-48 bg-zinc-900 border border-zinc-700 rounded-md shadow-lg z-20">
-          {CHAINS.map((chain) => (
-            <button
-              key={chain.id}
-              //@ts-ignore
-              onClick={() => handleSelect(chain.id)}
-              className="
-                block w-full text-left px-4 py-2 text-white
-                hover:bg-neutral-800 transition
-              "
-            >
-              {chain.name}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
