@@ -59,7 +59,7 @@ function MainApp() {
                   button={true}
                 />
               </div>
-              <div>
+              <div className="mt-4">
                 <Dashboard />
               </div>
             </div>
