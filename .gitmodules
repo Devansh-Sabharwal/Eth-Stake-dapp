@@ -1,0 +1,6 @@
+[submodule "Staking-ERC-Assignment/lib/openzeppelin-contracts"]
+	path = Staking-ERC-Assignment/lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "Staking-ERC-Assignment/lib/forge-std"]
+	path = Staking-ERC-Assignment/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
