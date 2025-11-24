@@ -1,40 +1,25 @@
-import { ShieldCheck, Wallet2 } from "lucide-react";
-import Navbar from "./components/Navbar";
-import StatCard from "./components/Stat-Card";
-import Dashboard from "./components/Dashboard";
+import { useEffect, useState } from "react";
+import MainApp from "./MainApp";
 
-function App() {
+export default function App() {
+  const [notLaptop, setNotLaptop] = useState(window.innerWidth < 800);
+
+  useEffect(() => {
+    const check = () => setNotLaptop(window.innerWidth < 800);
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
   return (
-    <>
-      <div>
-        <Navbar />
-        <div className="m-8">
-          <div className="w-full flex justify-center">
-            <div>
-              <div className="flex gap-4">
-                <StatCard
-                  title="Total Staked"
-                  amount={0}
-                  symbol="ETH"
-                  Icon={<ShieldCheck size={24} />}
-                />
-                <StatCard
-                  title="Total Rewards Available"
-                  amount={0}
-                  symbol="$ORCA"
-                  Icon={<Wallet2 size={24} />}
-                  button={true}
-                />
-              </div>
-              <div>
-                <Dashboard />
-              </div>
-            </div>
-          </div>
+    <div className="h-screen w-screen">
+      {notLaptop ? (
+        <div className="h-full w-full bg-black text-white flex items-center justify-center text-center p-6">
+          This app doesn’t work on mobile. Why? Because I’m too lazy to make it
+          responsive. Come back on a laptop.
         </div>
-      </div>
-    </>
+      ) : (
+        <MainApp />
+      )}
+    </div>
   );
 }
-
-export default App;

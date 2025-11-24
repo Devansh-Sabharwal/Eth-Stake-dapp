@@ -1,23 +1,102 @@
-import { useState } from "react";
-import { useBalance, useConnection } from "wagmi";
+import { useEffect, useState } from "react";
+import {
+  useBalance,
+  useConnection,
+  useReadContract,
+  useWaitForTransactionReceipt,
+} from "wagmi";
 import WalletModal from "./WalletModal";
+import { useWriteContract } from "wagmi";
+import { abi } from "../abi";
+import { formatEther, parseEther } from "viem";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function Dashboard() {
-  const [walletModal, setWalletModal] = useState(false);
-
+  const queryClient = useQueryClient();
   const connection = useConnection();
   const address = connection.address;
-  const [activeTab, setActiveTab] = useState("STAKE");
-  const [inputValue, setInputValue] = useState("");
-  const stakedBalance = 0;
-  const INITIAL_APY = 5;
 
   const { data } = useBalance({
     address: address as `0x${string}`,
   });
+
+  const { data: hash, writeContract } = useWriteContract();
+
+  const { data: stakedAmount, error } = useReadContract({
+    address: "0x0F7FFEE99710f994C6858d3A2f40b46876E595C9",
+    abi,
+    functionName: "userInfo",
+    //@ts-ignore
+    args: [address],
+  });
+  if (error) console.log(error);
+
+  const [walletModal, setWalletModal] = useState(false);
+  const [activeTab, setActiveTab] = useState("STAKE");
+  const [inputValue, setInputValue] = useState("");
+  const stakedBalance =
+    (stakedAmount &&
+      //@ts-ignore
+      Number(formatEther(stakedAmount[0] as bigint))) ||
+    0;
+  const INITIAL_APY = 5;
+
   const ethBalance = data?.value ? Number(data.value) / 1e18 : 0;
-  const setMax = () => {};
-  const handleAction = () => {};
+  const setMax = () => {
+    if (activeTab == "STAKE") setInputValue(ethBalance.toString());
+    else {
+      //@ts-ignore
+      setInputValue(stakedBalance || 0);
+    }
+  };
+  const handleStake = () => {
+    const amount = parseFloat(inputValue);
+    if (amount > ethBalance) {
+      alert("Not enough Balance to stake");
+    }
+    writeContract({
+      address: "0x0F7FFEE99710f994C6858d3A2f40b46876E595C9",
+      abi,
+      functionName: "stake",
+      args: [],
+      value: parseEther(inputValue),
+    });
+  };
+  const handleUnstake = () => {
+    const amount = parseFloat(inputValue);
+    //@ts-ignore
+    if (amount > stakedBalance) {
+      alert("Not enough Balance to unstake");
+    }
+    writeContract({
+      address: "0x0F7FFEE99710f994C6858d3A2f40b46876E595C9",
+      abi,
+      functionName: "unStake",
+      args: [amount * 1e18],
+    });
+    alert("Unstaking...");
+  };
+  const {
+    isSuccess: isConfirmed,
+    isLoading: isPending,
+    isError,
+    error: TxError,
+  } = useWaitForTransactionReceipt({
+    hash,
+  });
+
+  useEffect(() => {
+    if (isConfirmed) {
+      alert(`Transaction Successful ${hash}`);
+      queryClient.invalidateQueries();
+    }
+  }, [isConfirmed, hash, queryClient]);
+
+  useEffect(() => {
+    if (isError) {
+      alert(`Transaction Error ${TxError}`);
+    }
+  }, [isError, TxError]);
   return (
     <div>
       <div className="bg-zinc-900/50 border border-zinc-800 rounded-3xl p-2 shadow-2xl shadow-black/50 backdrop-blur-md animate-in fade-in slide-in-from-bottom-8 duration-700">
@@ -55,7 +134,8 @@ export default function Dashboard() {
                 <span className="text-zinc-300 ml-1">
                   {activeTab === "STAKE"
                     ? ethBalance.toFixed(4)
-                    : stakedBalance.toFixed(4)}{" "}
+                    : //@ts-ignore
+                      stakedBalance.toFixed(4)}{" "}
                   ETH
                 </span>
               </span>
@@ -95,17 +175,27 @@ export default function Dashboard() {
         </div>
         <div>
           <button
-            onClick={!address ? () => setWalletModal(true) : handleAction}
+            onClick={
+              !address
+                ? () => setWalletModal(true)
+                : activeTab === "STAKE"
+                  ? handleStake
+                  : handleUnstake
+            }
             className="cursor-pointer transition-colors duration-300 disabled:bg-white/60 px-3 py-4 bg-white text-center w-full text-black rounded-xl h-14 text-lg font-medium shadow-xl shadow-white/5"
             disabled={
-              !address ? false : !inputValue || parseFloat(inputValue) <= 0
+              !address
+                ? false
+                : !inputValue || isPending || parseFloat(inputValue) <= 0
             }
           >
             {!address
               ? "Connect Wallet"
-              : activeTab === "STAKE"
-                ? "Confirm Stake"
-                : "Confirm Unstake"}
+              : isPending
+                ? "Confirming..."
+                : activeTab === "STAKE"
+                  ? "Confirm Stake"
+                  : "Confirm Unstake"}
           </button>
         </div>
       </div>

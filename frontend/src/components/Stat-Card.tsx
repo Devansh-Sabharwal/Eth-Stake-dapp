@@ -1,3 +1,8 @@
+import { useWaitForTransactionReceipt, useWriteContract } from "wagmi";
+import { abi } from "../abi";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
+
 interface Props {
   title: string;
   amount: number;
@@ -26,12 +31,46 @@ export default function StatCard(props: Props) {
   );
 }
 function ClaimButton() {
+  const { data: hash, writeContract } = useWriteContract();
+  const queryClient = useQueryClient();
+
+  const handleClaim = () =>
+    writeContract({
+      address: "0x0F7FFEE99710f994C6858d3A2f40b46876E595C9",
+      abi,
+      functionName: "claimRewards",
+      args: [],
+    });
+
+  const {
+    isLoading: isConfirming,
+    isSuccess: isConfirmed,
+    isError,
+    error: TxError,
+  } = useWaitForTransactionReceipt({
+    hash,
+  });
+
+  // 🔥 FIX: Use effect to avoid repeated alerts
+  useEffect(() => {
+    if (isConfirmed) {
+      alert(`Minting Transaction Successful ${hash}`);
+      queryClient.invalidateQueries();
+    }
+  }, [isConfirmed, hash, queryClient]);
+
+  useEffect(() => {
+    if (isError) {
+      alert(`Transaction Error ${TxError}`);
+    }
+  }, [isError, TxError]);
+
   return (
     <button
       className="w-full active:scale-[0.98] cursor-pointer hover:scale-[1.02] transition-all duration-300 px-4 py-2 bg-white text-black font-semibold rounded-lg"
-      onClick={() => {}}
+      onClick={handleClaim}
     >
-      Claim Rewards
+      {isConfirming ? "Confirming..." : "Claim Rewards"}
     </button>
   );
 }
